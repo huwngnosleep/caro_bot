@@ -1,36 +1,19 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Windows.Forms;
 using System.Linq;
 using System;
-class Score
-{
-    
-    public int X = 99999;
-    public int O = -99999;
-    public int tie = 0;
-}
-
-class PointEval
-{
-    public int x;
-    public int y;
-    public int eval;
-}
-
-class Move
-{
-    public int i;
-    public int j;
-}
+using caro;
+using System.Reflection;
 
 namespace caro
 {
+
     public partial class Form1 : Form
     {
+        private string winner = null;
         private int Infinity = 999999;
         private int null_flag = 3214123;
-        private int max_depth = 5;
-        private string last_turn = "O";
+        private int max_depth = 3;
         private string turn = "X";
         private Button[][] board = new Button[10][];
         public int[][] directions = new int[][] {
@@ -43,6 +26,7 @@ namespace caro
             new int[] { -1, 1 },
             new int[] { -1, -1 }
         };
+        private string blank = "-";
         private int lengthWin = 5;
         private bool end_game = false;
         Score scores = new Score();
@@ -56,6 +40,10 @@ namespace caro
 
         void draw_game()
         {
+            timer_bar.Step = -10;
+            timer_bar.Value = 100;
+            timer_bar.Minimum = 0;
+            game_timer.Interval = 1000;
 
             var btn_size = main_game.Width / 12;
             var btn_margin = 5;
@@ -63,16 +51,17 @@ namespace caro
             for (int j = 0; j < 10; j++)
             {
                 board[j] = new Button[] {
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = "" },
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = "" },
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = "" },
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = "" },
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = "" },
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = "" },
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = "" },
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = "" },
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = ""},
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = ""},};
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
+                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },};
 
                 for (int i = 0; i < 10; i++)
                 {
@@ -88,6 +77,8 @@ namespace caro
                 old_btn.Location = new Point(0, old_btn.Location.Y + btn_margin + btn_size);
                 old_btn.Width = 0;
                 old_btn.Height = 0;
+
+                game_timer.Start();
             }
         }
 
@@ -96,7 +87,6 @@ namespace caro
 
         }
 
-        
 
         bool hasAdjacent(Button[][] board, int i, int j)
         {
@@ -105,7 +95,7 @@ namespace caro
                 int nextDirX = i + dir[0];
                 int nextDirY = j + dir[1];
                 if (nextDirX >= board.Length || nextDirY >= board.Length || nextDirX < 0 || nextDirY < 0) continue;
-                if (board[i + dir[0]][j + dir[1]].Text == "X" || board[i + dir[0]][j + dir[1]].Text == "O")
+                if (board[i + dir[0]][j + dir[1]].Text == ai || board[i + dir[0]][j + dir[1]].Text == human)
                 {
                     return true;
                 }
@@ -151,7 +141,7 @@ namespace caro
 
         }
 
-        
+
         string checkWinner(Button[][] board)
         {
             string winner = null;
@@ -160,7 +150,7 @@ namespace caro
             {
                 for (int j = 0; j < 10; j++)
                 {
-                    if (board[i][j].Text == "") continue;
+                    if (board[i][j].Text == blank) continue;
                     winner = this.moveAllDirection(board, i, j);
 
                     if (winner != null)
@@ -175,7 +165,7 @@ namespace caro
             {
                 for (int j = 0; j < 10; j++)
                 {
-                    if (board[i][j].Text == "")
+                    if (board[i][j].Text == blank)
                     {
                         openSpots++;
                     }
@@ -203,40 +193,43 @@ namespace caro
             };
 
             string str = $"{board[x1][y1].Text}{board[x2][y2].Text}{board[x3][y3].Text}{board[x4][y4].Text}{board[x5][y5].Text}";
-            if (pattern100.Contains(str)) {
-                if (str.Contains(current)) {
-                    if (board[x3][y3].Text == "-") return new PointEval { x = x3, y = y3, eval = 99999 };
-                    if (board[x2][y2].Text == "-") return new PointEval { x = x2, y = y2, eval = 99999 };
-                    if (board[x4][y4].Text == "-") return new PointEval { x = x4, y = y4, eval = 99999 };
-                    if (board[x1][y1].Text == "-") return new PointEval { x = x1, y = y1, eval = 99999 };
-                    if (board[x5][y5].Text == "-") return new PointEval { x = x5, y = y5, eval = 99999 };
-                } else
+            if (pattern100.Contains(str))
+            {
+                if (str.Contains(current))
                 {
-                    if (board[x3][y3].Text == "-") return new PointEval { x = x3, y = y3, eval = 99900 };
-                    if (board[x2][y2].Text == "-") return new PointEval { x = x2, y = y2, eval = 99900 };
-                    if (board[x4][y4].Text == "-") return new PointEval { x = x4, y = y4, eval = 99900 };
-                    if (board[x1][y1].Text == "-") return new PointEval { x = x1, y = y1, eval = 99900 };
-                    if (board[x5][y5].Text == "-") return new PointEval { x = x5, y = y5, eval = 99900 };
+                    if (board[x3][y3].Text == blank) return new PointEval { x = x3, y = y3, eval = 99999 };
+                    if (board[x2][y2].Text == blank) return new PointEval { x = x2, y = y2, eval = 99999 };
+                    if (board[x4][y4].Text == blank) return new PointEval { x = x4, y = y4, eval = 99999 };
+                    if (board[x1][y1].Text == blank) return new PointEval { x = x1, y = y1, eval = 99999 };
+                    if (board[x5][y5].Text == blank) return new PointEval { x = x5, y = y5, eval = 99999 };
+                }
+                else
+                {
+                    if (board[x3][y3].Text == blank) return new PointEval { x = x3, y = y3, eval = 99900 };
+                    if (board[x2][y2].Text == blank) return new PointEval { x = x2, y = y2, eval = 99900 };
+                    if (board[x4][y4].Text == blank) return new PointEval { x = x4, y = y4, eval = 99900 };
+                    if (board[x1][y1].Text == blank) return new PointEval { x = x1, y = y1, eval = 99900 };
+                    if (board[x5][y5].Text == blank) return new PointEval { x = x5, y = y5, eval = 99900 };
                 }
             }
 
             if (pattern75.Contains(str))
-                {
+            {
                 if (str.Contains(current))
                 {
-                    if (board[x3][y3].Text == "-") return new PointEval { x = x3, y = y3, eval = 90001 };
-                    if (board[x2][y2].Text == "-") return new PointEval { x = x2, y = y2, eval = 90001 };
-                    if (board[x4][y4].Text == "-") return new PointEval { x = x4, y = y4, eval = 90001 };
-                    if (board[x1][y1].Text == "-") return new PointEval { x = x1, y = y1, eval = 90001 };
-                    if (board[x5][y5].Text == "-") return new PointEval { x = x5, y = y5, eval = 90001 };
+                    if (board[x3][y3].Text == blank) return new PointEval { x = x3, y = y3, eval = 90001 };
+                    if (board[x2][y2].Text == blank) return new PointEval { x = x2, y = y2, eval = 90001 };
+                    if (board[x4][y4].Text == blank) return new PointEval { x = x4, y = y4, eval = 90001 };
+                    if (board[x1][y1].Text == blank) return new PointEval { x = x1, y = y1, eval = 90001 };
+                    if (board[x5][y5].Text == blank) return new PointEval { x = x5, y = y5, eval = 90001 };
                 }
                 else
                 {
-                    if (board[x3][y3].Text == "-") return new PointEval { x = x3, y = y3, eval = 90000 };
-                    if (board[x2][y2].Text == "-") return new PointEval { x = x2, y = y2, eval = 90000 };
-                    if (board[x4][y4].Text == "-") return new PointEval { x = x4, y = y4, eval = 90000 };
-                    if (board[x1][y1].Text == "-") return new PointEval { x = x1, y = y1, eval = 90000 };
-                    if (board[x5][y5].Text == "-") return new PointEval { x = x5, y = y5, eval = 90000 };
+                    if (board[x3][y3].Text == blank) return new PointEval { x = x3, y = y3, eval = 90000 };
+                    if (board[x2][y2].Text == blank) return new PointEval { x = x2, y = y2, eval = 90000 };
+                    if (board[x4][y4].Text == blank) return new PointEval { x = x4, y = y4, eval = 90000 };
+                    if (board[x1][y1].Text == blank) return new PointEval { x = x1, y = y1, eval = 90000 };
+                    if (board[x5][y5].Text == blank) return new PointEval { x = x5, y = y5, eval = 90000 };
                 }
             }
 
@@ -274,7 +267,7 @@ namespace caro
 
                 }
             }
-             return null;
+            return null;
         }
         int minimax(Button[][] board, int depth, bool isMaximizing, int alpha, int beta)
         {
@@ -287,20 +280,26 @@ namespace caro
             if (winner == "X")
             {
                 return this.scores.X - depth;
-            } else if(winner == "O")
+            }
+            else if (winner == "O")
             {
                 return this.scores.O - depth;
-            } else if(winner == "tie")
+            }
+            else if (winner == "tie")
             {
                 return this.scores.tie - depth;
             }
 
             // evaluating
             PointEval evalValue = new PointEval();
-            if (depth >= 1) {
-                for (int i = 0; i<board.Length; i++) {
-                    for (int j = 0; j<board.Length; j++) {
-                        foreach (int[] dir in this.directions) {
+            if (depth >= 1)
+            {
+                for (int i = 0; i < board.Length; i++)
+                {
+                    for (int j = 0; j < board.Length; j++)
+                    {
+                        foreach (int[] dir in this.directions)
+                        {
                             int nextDirX = i + dir[0] * (this.lengthWin - 1);
                             int nextDirY = j + dir[1] * (lengthWin - 1);
                             if (nextDirX >= board.Length || nextDirY >= board.Length || nextDirX < 0 || nextDirY < 0) continue;
@@ -312,10 +311,11 @@ namespace caro
                                 i + 3 * dir[0], j + 3 * dir[1],
                                 nextDirX, nextDirY
                             );
-                            if (evalResult != null && evalResult.eval > evalValue.eval) {
-                                evalValue = new PointEval() { eval = evalResult.eval, x = evalResult.x, y = evalResult.y }; 
+                            if (evalResult != null && evalResult.eval > evalValue.eval)
+                            {
+                                evalValue = new PointEval() { eval = evalResult.eval, x = evalResult.x, y = evalResult.y };
                             }
-}
+                        }
                     }
                 }
             }
@@ -334,12 +334,12 @@ namespace caro
                         if (evalValue.eval > 0)
                         {
                             if (i != evalValue.x || j != evalValue.y) continue;
-                                    }
+                        }
                         if (!hasAdjacent(board, i, j)) continue;
-                        if (board[i][j].Text != "-") continue;
+                        if (board[i][j].Text != blank) continue;
                         board[i][j].Text = ai;
                         int score = minimax(board, depth + 1, false, alpha, beta);
-                        board[i][j].Text = "-";
+                        board[i][j].Text = blank;
                         bestScore = Math.Max(score, bestScore);
                         alpha = Math.Max(alpha, score);
                         if (beta <= alpha) return bestScore;
@@ -357,16 +357,16 @@ namespace caro
                         if (evalValue.eval > 0)
                         {
                             if (i != evalValue.x || j != evalValue.y) continue;
-                                    }
+                        }
                         if (!hasAdjacent(board, i, j)) continue;
-                        if (board[i][j].Text != "-") continue;
+                        if (board[i][j].Text != blank) continue;
                         board[i][j].Text = human;
                         int score = minimax(board, depth + 1, true, alpha, beta);
-                        board[i][j].Text = "-";
+                        board[i][j].Text = blank;
                         bestScore = Math.Min(score, bestScore);
                         beta = Math.Min(beta, score);
                         if (beta <= alpha) return bestScore;
-                        }
+                    }
                 }
                 return bestScore;
             }
@@ -408,16 +408,18 @@ namespace caro
                  0,};
             }
 
-            MessageBox.Show("Thinking...");
             int bestScore = -Infinity;
             Move move = new Move();
             int alpha = -Infinity;
             int beta = Infinity;
 
             PointEval evalValue = new PointEval() { x = 0, y = 0, eval = -Infinity };
-            for (int i = 0; i<board.Length; i++) {
-                for (int j = 0; j<board.Length; j++) {
-                    foreach (int[] dir in directions) {
+            for (int i = 0; i < board.Length; i++)
+            {
+                for (int j = 0; j < board.Length; j++)
+                {
+                    foreach (int[] dir in directions)
+                    {
                         int nextDirX = i + dir[0] * (lengthWin - 1);
                         int nextDirY = j + dir[1] * (lengthWin - 1);
                         if (nextDirX >= board.Length || nextDirY >= board.Length || nextDirX < 0 || nextDirY < 0) continue;
@@ -429,8 +431,10 @@ namespace caro
                             i + 3 * dir[0], j + 3 * dir[1],
                             nextDirX, nextDirY
                         );
-                        if (evalResult != null) {
-                            if (evalResult.eval > evalBoard[evalResult.x][evalResult.y]) {
+                        if (evalResult != null)
+                        {
+                            if (evalResult.eval > evalBoard[evalResult.x][evalResult.y])
+                            {
                                 evalBoard[evalResult.x][evalResult.y] = evalResult.eval;
                             }
                         }
@@ -446,11 +450,10 @@ namespace caro
                         evalValue.x = i;
                         evalValue.y = j;
                         evalValue.eval = evalBoard[i][j];
-                    
+
                     }
                 }
             }
-
             if (evalValue.eval > 0)
             {
                 board[evalValue.x][evalValue.y].Text = turn;
@@ -462,94 +465,156 @@ namespace caro
             {
                 for (int j = 0; j < board.Length; j++)
                 {
-                                if (!hasAdjacent(board, i, j)) continue;
-                        if (board[i][j].Text == "-")
+                    if (!hasAdjacent(board, i, j)) continue;
+                    if (board[i][j].Text == blank)
                     {
-                                    board[i][j].Text = ai;
-                                    // var startTime = performance.now()
-                                    int score = minimax(board, 0, false, alpha, beta);
-                if (score == null_flag)
-                {
-                        board[i][j].Text = "-";
-                        continue;
-                }
-                        // var endTime = performance.now()
-                        // let time = ((endTime - startTime) / 1000).toFixed(2)
-                        // console.log("i = ", i)
-                        // console.log("j = ", j)
-                        // console.log("SCORE = ", score)
-                        // console.log(`This path took ${time} seconds`)
+                        board[i][j].Text = ai;
+                        int score = minimax(board, 0, false, alpha, beta);
+                        if (score == null_flag)
+                        {
+                            board[i][j].Text = blank;
+                            continue;
+                        }
                         scoreboard[i][j] = score;
-                        board[i][j].Text = "-";
+                        board[i][j].Text = blank;
 
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    move = new Move() { i = i, j = j };
-   
-                }
+                        if (score > bestScore)
+                        {
+                            bestScore = score;
+                            move.i = i;
+                            move.j = j;
+
+                        }
+                    }
+                    else
+                    {
+                        scoreboard[i][j] = -Infinity;
+                    }
                 }
             }
-        }
-        Random rnd = new Random();
-        while (true)
-        {
-            if (bestScore == -Infinity)
+            Random rnd = new Random();
+            while (true)
             {
+                if (bestScore == -Infinity)
+                {
 
                     move.i = board.Length / 2;
                     move.j = board.Length / 2;
                     break;
-            }
+                }
 
-            int randomX = (int) Math.Floor(rnd.NextDouble() * board.Length);
-            int randomY =(int) Math.Floor(rnd.NextDouble() * board.Length);
-            if (scoreboard[randomX][randomY] == bestScore)
-            {
+                int randomX = (int)Math.Floor(rnd.NextDouble() * board.Length);
+                int randomY = (int)Math.Floor(rnd.NextDouble() * board.Length);
+                if (scoreboard[randomX][randomY] == bestScore)
+                {
                     if (!hasAdjacent(board, randomX, randomY)) continue;
                     move.i = randomX;
                     move.j = randomY;
                     break;
                 }
             }
-            // board[move.i][move.j] = turn
-            //console.log("FINAL CHOICE", move.i, move.j)
-            //    console.log("CASE TRIED: ", caseCount)
-            //    console.log("OPERATION COUNT", runCount)
-            // printBoard(board)
-            return new PointEval() { x = move.i, y = move.j };
+
+            return new PointEval { x = move.i, y = move.j };
         }
 
+        void update_color(Button btn, String turn)
+        {
+            btn.ForeColor = Color.Black;
+            if(turn == human)
+            {
+                btn.BackColor = Color.Yellow;
+
+            } else
+            {
+                btn.BackColor = Color.Orange;
+            }
+        }
+
+        void go(Button btn)
+        {
+            btn.Text = this.turn;
+            this.update_color(btn, this.turn);
+        }
         void btn_click(object sender, EventArgs e)
         {
-            if (this.end_game == true || this.turn == ai) return;
             Button btn = sender as Button;
-            if (btn.Text == "X" || btn.Text == "O")
+            if (this.end_game == true || this.turn == ai) return;
+            if (btn.Text == ai || btn.Text == human)
             {
                 return;
             }
-            else btn.Text = human;
-            
-            //if (this.last_turn == "X")
-            //{
-            //    btn.Text = "O";
-            //    last_turn = "O";
-            //}
-            //else
-            //{
-            //    btn.Text = "X";
-            //    last_turn = "X";
-            //}
-            string winnner = this.checkWinner(this.board);
-            if (winnner != null)
+            this.go(btn);
+            string winner = this.checkWinner(this.board);
+            if (winner != null)
             {
                 this.end_game = true;
+                this.winner = winner;
+                this.finish_game();
+                return;
             }
-            this.turn = ai;
-            PointEval ai_move = bestMove(board);
-            this.turn = human;
-            board[ai_move.x][ai_move.y].Text = ai;
+            switch_turn(ai);
+            PointEval ai_move = bestMove(this.board);
+            this.go(board[ai_move.x][ai_move.y]);
+            winner = this.checkWinner(this.board);
+            if (winner != null)
+            {
+                this.end_game = true;
+                this.winner = winner;
+                this.finish_game();
+                return;
+            }
+            switch_turn(human);
+        }
+
+        
+        private void switch_turn(string next_turn)
+        {
+            game_timer.Stop();
+            turn_text.Text = $"Đến lượt {next_turn}";
+            this.turn = next_turn;
+            timer_bar.Value = 100;
+            game_timer.Start();
+        }
+        private void game_timer_Tick(object sender, EventArgs e)
+        {
+            timer_bar.PerformStep();
+            if (timer_bar.Value == timer_bar.Minimum)
+            {
+                if (this.turn == ai)
+                {
+                    this.winner = human;
+                }
+                else
+                {
+                    this.winner = ai;
+                }
+                finish_game();
+            }
+        }
+
+        void finish_game()
+        {
+            // MessageBox.Show($"{this.winner} WIN");
+            turn_text.Text = $"{this.winner} WIN";
+            game_timer.Stop();
+            if(this.winner == human) { turn_text.ForeColor = Color.Green; }
+            else { turn_text.ForeColor= Color.Red; }    
+        }
+        private void timer_bar_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void timer_bar_Validated(object sender, EventArgs e)
+        {
+        }
+
+        private void restartToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Application.Restart();
+            Environment.Exit(0);
         }
     }
-   
+
 }
+
