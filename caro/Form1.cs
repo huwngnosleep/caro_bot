@@ -68,7 +68,10 @@ namespace caro
                     btn.Click += btn_click;
                     btn.Location = new Point(old_btn.Location.X + old_btn.Width + btn_margin, old_btn.Location.Y);
                     main_game.Controls.Add(btn);
-                    old_btn = btn;
+
+                    old_btn.Location = new Point(btn.Location.X, btn.Location.Y);
+                    old_btn.Width = btn.Width;
+                    old_btn.Height = btn.Height;
                 }
                 old_btn.Location = new Point(0, old_btn.Location.Y + btn_margin + btn_size);
                 old_btn.Width = 0;
