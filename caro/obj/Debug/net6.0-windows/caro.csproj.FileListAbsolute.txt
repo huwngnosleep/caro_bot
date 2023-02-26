@@ -4,7 +4,6 @@ C:\Users\thanh\source\repos\caro\caro\bin\Debug\net6.0-windows\caro.runtimeconfi
 C:\Users\thanh\source\repos\caro\caro\bin\Debug\net6.0-windows\caro.dll
 C:\Users\thanh\source\repos\caro\caro\bin\Debug\net6.0-windows\caro.pdb
 C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\caro.csproj.AssemblyReference.cache
-C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\caro.Form1.resources
 C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\caro.csproj.GenerateResource.cache
 C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\caro.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\caro.AssemblyInfoInputs.cache
@@ -15,3 +14,4 @@ C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\refint\caro.dll
 C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\caro.pdb
 C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\caro.genruntimeconfig.cache
 C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\ref\caro.dll
+C:\Users\thanh\source\repos\caro\caro\obj\Debug\net6.0-windows\Score.resources
