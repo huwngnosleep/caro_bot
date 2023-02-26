@@ -60,7 +60,6 @@ namespace caro
                  new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
                  new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
                  new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
-                 new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },
                  new Button() { Width = btn_size, Height = btn_size, Location = new Point(0, 0), Text = blank },};
 
                 for (int i = 0; i < 10; i++)
@@ -68,11 +67,8 @@ namespace caro
                     Button btn = board[j][i];
                     btn.Click += btn_click;
                     btn.Location = new Point(old_btn.Location.X + old_btn.Width + btn_margin, old_btn.Location.Y);
-
                     main_game.Controls.Add(btn);
-
                     old_btn = btn;
-
                 }
                 old_btn.Location = new Point(0, old_btn.Location.Y + btn_margin + btn_size);
                 old_btn.Width = 0;
