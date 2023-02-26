@@ -4,6 +4,7 @@ using System.Linq;
 using System;
 using caro;
 using System.Reflection;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace caro
 {
@@ -536,6 +537,7 @@ namespace caro
         }
         void btn_click(object sender, EventArgs e)
         {
+
             Button btn = sender as Button;
             if (this.end_game == true || this.turn == ai) return;
             if (btn.Text == ai || btn.Text == human)
@@ -543,6 +545,7 @@ namespace caro
                 return;
             }
             this.go(btn);
+            
             string winner = this.checkWinner(this.board);
             if (winner != null)
             {
@@ -593,7 +596,6 @@ namespace caro
 
         void finish_game()
         {
-            // MessageBox.Show($"{this.winner} WIN");
             turn_text.Text = $"{this.winner} WIN";
             game_timer.Stop();
             if(this.winner == human) { turn_text.ForeColor = Color.Green; }
@@ -610,7 +612,8 @@ namespace caro
 
         private void restartToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Application.Restart();
+
+            System.Windows.Forms.Application.Restart();
             Environment.Exit(0);
         }
     }
