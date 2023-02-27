@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\thanh\\source\\repos\\caro\\caro\\caro.csproj",
+      "projectUniqueName": "C:\\Users\\thanh\\Source\\Repos\\caro_bot\\caro\\caro.csproj",
       "projectName": "caro",
-      "projectPath": "C:\\Users\\thanh\\source\\repos\\caro\\caro\\caro.csproj",
+      "projectPath": "C:\\Users\\thanh\\Source\\Repos\\caro_bot\\caro\\caro.csproj",
       "packagesPath": "C:\\Users\\thanh\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\thanh\\source\\repos\\caro\\caro\\obj\\",
+      "outputPath": "C:\\Users\\thanh\\Source\\Repos\\caro_bot\\caro\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\thanh\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -64,7 +64,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.201\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.200\\RuntimeIdentifierGraph.json"
       }
     }
   }

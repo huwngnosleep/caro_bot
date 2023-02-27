@@ -5,12 +5,18 @@ using System;
 using caro;
 using System.Reflection;
 using static System.Net.Mime.MediaTypeNames;
+using GameCaro;
+using System.Net.NetworkInformation;
+using System.Collections.Generic;
 
 namespace caro
 {
 
     public partial class Form1 : Form
     {
+        #region properties
+        private bool connected = false;
+        private string mode = "pve";
         private string winner = null;
         private int Infinity = 999999;
         private int null_flag = 3214123;
@@ -29,14 +35,22 @@ namespace caro
         };
         private string blank = "-";
         private int lengthWin = 5;
-        private bool end_game = false;
+        private bool end_game = true;
         Score scores = new Score();
         private string ai = "O";
         private string human = "X";
+
+
+        SocketManager socket;
+
+
+        #endregion
         public Form1()
         {
             InitializeComponent();
             draw_game();
+
+            socket = new SocketManager();
         }
 
         void draw_game()
@@ -66,6 +80,7 @@ namespace caro
                 for (int i = 0; i < 10; i++)
                 {
                     Button btn = board[j][i];
+                    btn.Name = $"{i}_{j}";
                     btn.Click += btn_click;
                     btn.Location = new Point(old_btn.Location.X + old_btn.Width + btn_margin, old_btn.Location.Y);
                     main_game.Controls.Add(btn);
@@ -78,7 +93,7 @@ namespace caro
                 old_btn.Width = 0;
                 old_btn.Height = 0;
 
-                game_timer.Start();
+
             }
         }
 
@@ -87,6 +102,19 @@ namespace caro
 
         }
 
+        private void start_game()
+        {
+            this.turn_text.Text = "GAME STARTED!!!";
+            this.end_game = false;
+            if (this.mode == "pvp")
+            {
+                Listen();
+                socket.Send(new SocketData((int)SocketCommand.NEW_GAME, null, new Point()));
+            }
+            
+
+            game_timer.Start();
+        }
 
         bool hasAdjacent(Button[][] board, int i, int j)
         {
@@ -520,11 +548,12 @@ namespace caro
         void update_color(Button btn, String turn)
         {
             btn.ForeColor = Color.Black;
-            if(turn == human)
+            if (turn == human)
             {
                 btn.BackColor = Color.Yellow;
 
-            } else
+            }
+            else
             {
                 btn.BackColor = Color.Orange;
             }
@@ -539,36 +568,62 @@ namespace caro
         {
 
             Button btn = sender as Button;
+            string btn_index = btn.Name;
+            int x = Int32.Parse(btn_index.Split("_")[0]);
+            int y = Int32.Parse(btn_index.Split("_")[1]);
             if (this.end_game == true || this.turn == ai) return;
             if (btn.Text == ai || btn.Text == human)
             {
                 return;
             }
             this.go(btn);
-            
+
             string winner = this.checkWinner(this.board);
             if (winner != null)
             {
-                this.end_game = true;
-                this.winner = winner;
-                this.finish_game();
-                return;
-            }
-            switch_turn(ai);
-            PointEval ai_move = bestMove(this.board);
-            this.go(board[ai_move.x][ai_move.y]);
-            winner = this.checkWinner(this.board);
-            if (winner != null)
+                this.finish_game(winner);
+                if (this.mode == "pve")
+                {
+                    return;
+                }
+            } else
             {
-                this.end_game = true;
-                this.winner = winner;
-                this.finish_game();
-                return;
+                switch_turn(ai);
+
             }
-            switch_turn(human);
+
+            if (this.mode == "pve")
+            {
+                PointEval ai_move = bestMove(this.board);
+                this.go(board[ai_move.x][ai_move.y]);
+
+                winner = this.checkWinner(this.board);
+                if (winner != null)
+                {
+                    this.finish_game(winner);
+                    return;
+                }
+                switch_turn(human);
+            }
+            else
+            {
+                socket.Send(new SocketData((int)SocketCommand.SEND_POINT, null, new Point() { X = x, Y = y }));
+                Listen();
+
+                //switch_turn(human);
+            }
         }
 
-        
+        private void timer_bar_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void timer_bar_Validated(object sender, EventArgs e)
+        {
+        }
+
+
         private void switch_turn(string next_turn)
         {
             game_timer.Stop();
@@ -584,30 +639,23 @@ namespace caro
             {
                 if (this.turn == ai)
                 {
-                    this.winner = human;
+                    finish_game(human);
                 }
                 else
                 {
-                    this.winner = ai;
+                    finish_game(ai);
                 }
-                finish_game();
             }
         }
 
-        void finish_game()
+        void finish_game(string winner)
         {
-            turn_text.Text = $"{this.winner} WIN";
+            turn_text.Text = $"{winner} WIN";
             game_timer.Stop();
-            if(this.winner == human) { turn_text.ForeColor = Color.Green; }
-            else { turn_text.ForeColor= Color.Red; }    
-        }
-        private void timer_bar_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void timer_bar_Validated(object sender, EventArgs e)
-        {
+            this.winner = winner;
+            this.end_game = true;
+            if (winner == human) { turn_text.ForeColor = Color.Green; }
+            else { turn_text.ForeColor = Color.Red; }
         }
 
         private void restartToolStripMenuItem_Click(object sender, EventArgs e)
@@ -615,6 +663,128 @@ namespace caro
 
             System.Windows.Forms.Application.Restart();
             Environment.Exit(0);
+        }
+
+        private void ip_connect_btn_Click(object sender, EventArgs e)
+        {
+            if (this.connected == true) return;
+            this.mode = "pvp";
+            socket.IP = ip_input.Text;
+            if (!socket.ConnectServer())
+            {
+                socket.isServer = true;
+                socket.CreateServer();
+                this.connected = true;
+
+
+                server_status.Text = "Server online, waiting for connection...";
+                server_status.ForeColor = Color.Green;
+            }
+            else
+            {
+
+                socket.isServer = false;
+                Listen();
+                this.connected = true;
+                server_status.Text = "Connected!!!";
+                server_status.ForeColor = Color.Green;
+                socket.Send(new SocketData((int)SocketCommand.NOTIFY, null, new Point()));
+            }
+
+            if (socket.isServer) { this.turn = human; } else this.turn = ai;
+        }
+
+        private void Form1_Shown(object sender, EventArgs e)
+        {
+            ip_input.Text = socket.GetLocalIPv4(NetworkInterfaceType.Wireless80211);
+
+            if (string.IsNullOrEmpty(ip_input.Text))
+            {
+                ip_input.Text = socket.GetLocalIPv4(NetworkInterfaceType.Ethernet);
+            }
+        }
+
+        private void Listen()
+        {
+            Thread listenThread = new Thread(() =>
+            {
+                try
+                {
+                    SocketData data = (SocketData)socket.Receive();
+
+                    ProcessData(data);
+                }
+                catch (Exception e)
+                {
+                }
+            });
+            listenThread.IsBackground = true;
+            listenThread.Start();
+        }
+
+        private void ProcessData(SocketData data)
+        {
+            switch (data.Command)
+            {
+                case (int)SocketCommand.NOTIFY:
+                    server_status.Text = "CONNECTED, LET'S START!!!";
+                    break;
+                case (int)SocketCommand.NEW_GAME:
+                    this.Invoke((MethodInvoker)(() =>
+                    {
+                        if (!socket.isServer)
+                        {
+
+                            this.start_game();
+                        }
+
+                    }));
+                    break;
+                case (int)SocketCommand.SEND_POINT:
+                    this.Invoke((MethodInvoker)(() =>
+                    {
+
+                        this.switch_turn(ai);
+                        Point opponent_move = data.Point;
+                        this.go(this.board[opponent_move.Y][opponent_move.X]);
+                        winner = this.checkWinner(this.board);
+                        if (winner != null)
+                        {
+                            this.finish_game(winner);
+                        } else
+                        {
+                            this.switch_turn(human);
+
+                        }
+
+                    }));
+                    break;
+                case (int)SocketCommand.UNDO:
+                    break;
+                case (int)SocketCommand.END_GAME:
+                    break;
+                case (int)SocketCommand.QUIT:
+                    break;
+                default:
+                    break;
+            }
+
+            Listen();
+        }
+
+        private void label2_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void start_button_Click(object sender, EventArgs e)
+        {
+            if (this.mode == "pvp" && !socket.isServer)
+            {
+                return;
+
+            }
+            this.start_game();
         }
     }
 
